@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
+	"os"
 )
 
 const MAXCARD = 0x37
@@ -95,15 +98,21 @@ func getChaiMethod(n int8) []chai {
 }
 
 func chaiPai(p []int8, eye *bool) bool {
+	if len(p) == 0 {
+		return true
+	}
+
 	for index := 0; index < len(p); index++ {
 		if p[index] == 0 {
 			continue
 		}
 		hs := getChaiMethod(p[index])
-		for i := 0; i < len(hs); i++ {
-			if index+1
-			
-			if hs[i].b > p[index+1] || hs[i].c > p[index+2] {
+		var i = 0
+		for ; i < len(hs); i++ {
+			if hs[i].b > 0 && (index+2 > (len(p) - 1)) {
+				continue
+			}
+			if (hs[i].b > p[index+1]) || (hs[i].c > p[index+2]) {
 				continue
 			}
 			if hs[i].eye && *eye {
@@ -112,13 +121,24 @@ func chaiPai(p []int8, eye *bool) bool {
 			p[index] = 0
 			p[index+1] -= hs[i].b
 			p[index+2] -= hs[i].c
-			chaiPai(p[1:], eye)
+			if hs[i].eye {
+				*eye = true
+			}
+			if chaiPai(p[1:], eye) {
+				return true
+			}
 			p[index] = hs[i].a
 			p[index+1] += hs[i].b
 			p[index+2] += hs[i].c
-
+			if hs[i].eye {
+				*eye = false
+			}
+		}
+		if i == len(hs) {
+			return false
 		}
 	}
+	return true
 }
 
 func checkColor(p []int8, eye *bool) bool {
@@ -136,7 +156,19 @@ func checkColor(p []int8, eye *bool) bool {
 	return chaiPai(p, eye)
 }
 
+func isQiDui(cards []int8) bool {
+	for index := 0; index < len(cards); index++ {
+		if cards[index] != 0 && cards[index] != 2 && cards[index] != 4 {
+			return false
+		}
+	}
+	return true
+}
+
 func isHu(cards []int8) bool {
+	if isQiDui(cards) {
+		return true
+	}
 	var eye = false
 	if !checkZi(cards[0x31:], &eye) {
 		return false
@@ -144,15 +176,30 @@ func isHu(cards []int8) bool {
 	if !checkColor(cards[0x01:0x10], &eye) {
 		return false
 	}
+	if !checkColor(cards[0x11:0x19], &eye) {
+		return false
+	}
+	if !checkColor(cards[0x21:0x29], &eye) {
+		return false
+	}
+	return true
 }
 
 func main() {
-	var cards []int8
-	for index := 0; index < 4; index++ {
-		cards = append(cards, mj...)
+	fileObj, _ := os.OpenFile("hu.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	for i := 0; i < 1000000; i++ {
+		var cards []int8
+		for index := 0; index < 4; index++ {
+			cards = append(cards, mj...)
+		}
+		handCard := getHandCard(cards, 14)
+		handCard = []int8{0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+		data, _ := json.Marshal(handCard)
+		io.WriteString(fileObj, string(data))
+		if isHu(handCard) {
+			io.WriteString(fileObj, "\nhu le\n")
+		} else {
+			io.WriteString(fileObj, "\nno\n")
+		}
 	}
-	handCard := getHandCard(cards, 14)
-	fmt.Println("handcard : ", handCard, " , size = ", len(handCard))
-	isHu(handCard)
-	fmt.Println("hello world")
 }
