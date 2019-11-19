@@ -109,8 +109,17 @@ func chaiPai(p []int8, eye *bool) bool {
 		hs := getChaiMethod(p[index])
 		var i = 0
 		for ; i < len(hs); i++ {
-			if hs[i].b > 0 && (index+2 > (len(p) - 1)) {
-				continue
+			if index == len(p)-1 || index == len(p)-2 {
+				if hs[i].b > 0 {
+					continue
+				}
+				if hs[i].eye && *eye {
+					continue
+				}
+				if hs[i].eye {
+					*eye = true
+				}
+				return true
 			}
 			if (hs[i].b > p[index+1]) || (hs[i].c > p[index+2]) {
 				continue
@@ -176,10 +185,10 @@ func isHu(cards []int8) bool {
 	if !checkColor(cards[0x01:0x10], &eye) {
 		return false
 	}
-	if !checkColor(cards[0x11:0x19], &eye) {
+	if !checkColor(cards[0x11:0x20], &eye) {
 		return false
 	}
-	if !checkColor(cards[0x21:0x29], &eye) {
+	if !checkColor(cards[0x21:0x30], &eye) {
 		return false
 	}
 	return true
@@ -187,13 +196,15 @@ func isHu(cards []int8) bool {
 
 func main() {
 	fileObj, _ := os.OpenFile("hu.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	for i := 0; i < 1000000; i++ {
+	for i := 0; i < 100000000; i++ {
 		var cards []int8
 		for index := 0; index < 4; index++ {
 			cards = append(cards, mj...)
 		}
 		handCard := getHandCard(cards, 14)
-		handCard = []int8{0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+		handCard[0x10] = 100
+		handCard[0x20] = 100
+		handCard[0x30] = 100
 		data, _ := json.Marshal(handCard)
 		io.WriteString(fileObj, string(data))
 		if isHu(handCard) {
